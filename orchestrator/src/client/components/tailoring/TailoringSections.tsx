@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Circle,
   CircleAlert,
+  Info,
   Plus,
   Redo2,
   Sparkles,
@@ -150,9 +151,10 @@ const SectionTriggerLabel: React.FC<{
   title: string;
   state: SectionState;
   badgeLabel?: string;
+  badgeAdornment?: React.ReactNode;
   count?: number;
   children?: React.ReactNode;
-}> = ({ title, state, badgeLabel, count, children }) => {
+}> = ({ title, state, badgeLabel, badgeAdornment, count, children }) => {
   const copy = stateCopy[state];
   const resolvedBadgeLabel =
     badgeLabel ??
@@ -172,6 +174,7 @@ const SectionTriggerLabel: React.FC<{
         >
           {resolvedBadgeLabel}
         </span>
+        {badgeAdornment}
       </span>
       {children ? (
         <span className="hidden shrink-0 items-center gap-1 sm:flex">
@@ -181,6 +184,26 @@ const SectionTriggerLabel: React.FC<{
     </span>
   );
 };
+
+const NoSelectedProjectsInfo = () => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span
+        aria-label="Why no projects are selected"
+        className="inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/40 hover:text-foreground"
+        role="img"
+        title="Why no projects are selected"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </span>
+    </TooltipTrigger>
+    <TooltipContent className="max-w-72 text-left text-xs leading-5" side="top">
+      No projects are saved for this job yet. The generated PDF will not include
+      tailored project choices until you select projects below or run automatic
+      generation again.
+    </TooltipContent>
+  </Tooltip>
+);
 
 export const TailoringSections: React.FC<TailoringSectionsProps> = ({
   catalog,
@@ -599,6 +622,9 @@ export const TailoringSections: React.FC<TailoringSectionsProps> = ({
                 state={projectsState}
                 badgeLabel={
                   selectedIds.size > 0 ? String(selectedIds.size) : undefined
+                }
+                badgeAdornment={
+                  projectsState === "none" ? <NoSelectedProjectsInfo /> : null
                 }
               />
             </AccordionTrigger>
