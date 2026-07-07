@@ -45,13 +45,57 @@ https://github.com/user-attachments/assets/ec5bc249-aad5-41f2-b1ff-f7b3b6e6f7b8
 
 Prefer a guided walkthrough? Follow the [Self-Hosting Guide](https://jobops.dakheera47.com/docs/getting-started/self-hosting).
 
+**Option A — Docker (recommended, zero Node.js required locally)**
+
 ```bash
-git clone https://github.com/DaKheera47/job-ops.git
+git clone https://github.com/PharateSwapnil/job-ops.git
 cd job-ops
 docker compose up -d
 ```
 
-Open `http://localhost:3005` and follow the onboarding wizard. You'll be searching in under 10 minutes.
+**Option B — Python setup script (Node.js 20+ required)**
+
+```bash
+git clone https://github.com/PharateSwapnil/job-ops.git
+cd job-ops
+python setup.py          # interactive wizard
+# or non-interactively:
+python setup.py --install && python setup.py --dev
+```
+
+Open `http://localhost:3005` and follow the onboarding wizard.
+
+### setup.py commands
+
+| Command | What it does |
+|---------|-------------|
+| `python setup.py` | Interactive guided install + launch wizard |
+| `python setup.py --install` | Install all deps + run migrations (no launch) |
+| `python setup.py --dev` | Hot-reload development server |
+| `python setup.py --prod` | Build client + production server |
+| `python setup.py --docker` | Docker Compose build + start |
+| `python setup.py --update` | `git pull` + reinstall + migrate |
+| `python setup.py --reset-db` | Wipe DB and re-migrate (asks confirmation) |
+| `python setup.py --status` | Show what's installed / configured |
+| `python setup.py --check` | Check Node/npm/git/Docker versions only |
+
+---
+
+## Browser Automation
+
+Job-Ops includes an optional browser automation module that can auto-apply to jobs across 10 platforms:
+
+**LinkedIn · Naukri · Indeed · Wellfound · Greenhouse · Lever · Workday · Dice · Monster · ZipRecruiter**
+
+Navigate to **Automation** in the sidebar, add your credentials for each platform, then click **Auto Apply** on any ready job. The automation engine:
+
+- Reuses browser sessions (logs in once, never again until the session expires)
+- Types and clicks like a human (randomised delays, mouse offsets)
+- Answers screening questions using your configured LLM
+- Captures screenshots on each step for audit
+- Retries failed applications with exponential backoff
+
+> **Important:** Set `AUTOMATION_SECRET` in your `.env` to a strong 32+ character random string before saving credentials. Passwords are encrypted with AES-256-GCM at rest.
 
 ---
 
