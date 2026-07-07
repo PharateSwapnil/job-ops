@@ -1,4 +1,5 @@
 import {
+  Bot,
   Columns3,
   Eye,
   FilePenLine,
@@ -51,6 +52,12 @@ export const NAV_LINKS: NavLink[] = [
   },
   { to: "/visa-sponsors", label: "Visa Sponsors", icon: Shield },
   { to: "/watchlist", label: "Watchlist", icon: Eye },
+  {
+    to: "/automation",
+    label: "Automation",
+    icon: Bot,
+    activePaths: ["/automation"],
+  },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

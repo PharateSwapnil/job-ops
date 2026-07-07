@@ -1107,3 +1107,185 @@ export type TracerLinkRow = typeof tracerLinks.$inferSelect;
 export type NewTracerLinkRow = typeof tracerLinks.$inferInsert;
 export type TracerClickEventRow = typeof tracerClickEvents.$inferSelect;
 export type NewTracerClickEventRow = typeof tracerClickEvents.$inferInsert;
+
+// ─── Browser Automation Module ────────────────────────────────────────────────
+
+export const AUTOMATION_PLATFORM_VALUES = [
+  "linkedin",
+  "naukri",
+  "indeed",
+  "wellfound",
+  "greenhouse",
+  "lever",
+  "workday",
+  "dice",
+  "monster",
+  "ziprecruiter",
+] as const;
+
+export const AUTOMATION_STATUS_VALUES = [
+  "idle",
+  "queued",
+  "running",
+  "paused",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+
+export const AUTOMATION_STEP_VALUES = [
+  "login",
+  "search",
+  "extract",
+  "navigate",
+  "fill_form",
+  "upload_resume",
+  "answer_questions",
+  "submit",
+  "verify",
+  "logout",
+] as const;
+
+export const automationSessions = sqliteTable(
+  "automation_sessions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default("tenant_default")
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform", { enum: AUTOMATION_PLATFORM_VALUES }).notNull(),
+    status: text("status", {
+      enum: ["active", "expired", "logged_out"],
+    })
+      .notNull()
+      .default("active"),
+    profileDir: text("profile_dir").notNull(),
+    lastUsedAt: text("last_used_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    tenantPlatformIndex: index("idx_automation_sessions_tenant_platform").on(
+      table.tenantId,
+      table.platform,
+    ),
+    statusIndex: index("idx_automation_sessions_status").on(table.status),
+  }),
+);
+
+export const automationCredentials = sqliteTable(
+  "automation_credentials",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default("tenant_default")
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform", { enum: AUTOMATION_PLATFORM_VALUES }).notNull(),
+    username: text("username").notNull(),
+    /** Stored encrypted via AES-256-GCM; never returned to client */
+    encryptedPassword: text("encrypted_password").notNull(),
+    iv: text("iv").notNull(),
+    authTag: text("auth_tag").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    tenantPlatformUnique: uniqueIndex(
+      "idx_automation_credentials_tenant_platform_unique",
+    ).on(table.tenantId, table.platform),
+  }),
+);
+
+export const automationTasks = sqliteTable(
+  "automation_tasks",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default("tenant_default")
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    platform: text("platform", { enum: AUTOMATION_PLATFORM_VALUES }).notNull(),
+    jobUrl: text("job_url").notNull(),
+    jobTitle: text("job_title").notNull(),
+    employer: text("employer").notNull(),
+    resumeDocumentId: text("resume_document_id"),
+    coverLetter: text("cover_letter"),
+    status: text("status", { enum: AUTOMATION_STATUS_VALUES })
+      .notNull()
+      .default("queued"),
+    currentStep: text("current_step", { enum: AUTOMATION_STEP_VALUES }),
+    stepProgress: integer("step_progress").notNull().default(0),
+    screenshotPath: text("screenshot_path"),
+    errorMessage: text("error_message"),
+    retryCount: integer("retry_count").notNull().default(0),
+    maxRetries: integer("max_retries").notNull().default(3),
+    enqueuedAt: text("enqueued_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    startedAt: text("started_at"),
+    completedAt: text("completed_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    tenantStatusIndex: index("idx_automation_tasks_tenant_status").on(
+      table.tenantId,
+      table.status,
+    ),
+    jobIndex: index("idx_automation_tasks_job_id").on(table.jobId),
+    enqueuedAtIndex: index("idx_automation_tasks_enqueued_at").on(
+      table.enqueuedAt,
+    ),
+  }),
+);
+
+export const automationLogs = sqliteTable(
+  "automation_logs",
+  {
+    id: text("id").primaryKey(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => automationTasks.id, { onDelete: "cascade" }),
+    tenantId: text("tenant_id")
+      .notNull()
+      .default("tenant_default")
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    level: text("level", { enum: ["info", "warn", "error"] })
+      .notNull()
+      .default("info"),
+    message: text("message").notNull(),
+    meta: text("meta"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    taskIndex: index("idx_automation_logs_task_id").on(table.taskId),
+    tenantCreatedAtIndex: index("idx_automation_logs_tenant_created_at").on(
+      table.tenantId,
+      table.createdAt,
+    ),
+  }),
+);

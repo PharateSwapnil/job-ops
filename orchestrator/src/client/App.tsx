@@ -19,6 +19,7 @@ import { OnboardingGate } from "./components/OnboardingGate";
 import { useAnalyticsIdentity } from "./hooks/useAnalyticsIdentity";
 import { useDemoInfo } from "./hooks/useDemoInfo";
 import { setAuthNavigator } from "./lib/auth-navigation";
+import { AutomationPage } from "./pages/automation/AutomationPage";
 import { DesignResumePage } from "./pages/DesignResumePage";
 import { GmailOauthCallbackPage } from "./pages/GmailOauthCallbackPage";
 import { HomePage } from "./pages/HomePage";
@@ -197,6 +198,7 @@ export const App: React.FC = () => {
                 <Route path="/visa-sponsors" element={<VisaSponsorsPage />} />
                 <Route path="/tracking-inbox" element={<TrackingInboxPage />} />
                 <Route path="/watchlist" element={<WatchlistPage />} />
+                <Route path="/automation" element={<AutomationPage />} />
                 <Route path="/jobs/:tab" element={<OrchestratorPage />} />
                 <Route
                   path="/jobs/:tab/:jobId"

@@ -3,6 +3,7 @@
  */
 
 import { Router } from "express";
+import { automationRouter } from "./routes/automation/index";
 import { appStatusRouter } from "./routes/app-status";
 import { authRouter } from "./routes/auth";
 import { backupRouter } from "./routes/backup";
@@ -49,4 +50,5 @@ apiRouter.use("/workspaces", workspacesRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/workday", workdayRouter);
 apiRouter.use("/watchlist", watchlistRouter);
+apiRouter.use("/automation", automationRouter);
 apiRouter.use("/", extractorHealthRouter);

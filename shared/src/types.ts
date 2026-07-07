@@ -18,3 +18,4 @@ export * from "./types/post-application";
 export * from "./types/settings";
 export * from "./types/usage";
 export * from "./types/visa-sponsors";
+export * from "./types/automation";

@@ -1722,3 +1722,89 @@ sqlite.exec(
 
 sqlite.close();
 console.log("🎉 Database migrations complete!");
+
+// ─── Browser Automation Module migrations ────────────────────────────────────
+
+if (!tableExists("automation_sessions")) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS automation_sessions (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default' REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL CHECK(platform IN ('linkedin','naukri','indeed','wellfound','greenhouse','lever','workday','dice','monster','ziprecruiter')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','expired','logged_out')),
+      profile_dir TEXT NOT NULL,
+      last_used_at TEXT NOT NULL DEFAULT (datetime('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_sessions_tenant_platform ON automation_sessions(tenant_id, platform)`);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_sessions_status ON automation_sessions(status)`);
+}
+
+if (!tableExists("automation_credentials")) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS automation_credentials (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default' REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL CHECK(platform IN ('linkedin','naukri','indeed','wellfound','greenhouse','lever','workday','dice','monster','ziprecruiter')),
+      username TEXT NOT NULL,
+      encrypted_password TEXT NOT NULL,
+      iv TEXT NOT NULL,
+      auth_tag TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(tenant_id, platform)
+    )
+  `);
+}
+
+if (!tableExists("automation_tasks")) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS automation_tasks (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default' REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      platform TEXT NOT NULL CHECK(platform IN ('linkedin','naukri','indeed','wellfound','greenhouse','lever','workday','dice','monster','ziprecruiter')),
+      job_url TEXT NOT NULL,
+      job_title TEXT NOT NULL,
+      employer TEXT NOT NULL,
+      resume_document_id TEXT,
+      cover_letter TEXT,
+      status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('idle','queued','running','paused','completed','failed','cancelled')),
+      current_step TEXT CHECK(current_step IN ('login','search','extract','navigate','fill_form','upload_resume','answer_questions','submit','verify','logout')),
+      step_progress INTEGER NOT NULL DEFAULT 0,
+      screenshot_path TEXT,
+      error_message TEXT,
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      max_retries INTEGER NOT NULL DEFAULT 3,
+      enqueued_at TEXT NOT NULL DEFAULT (datetime('now')),
+      started_at TEXT,
+      completed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_tenant_status ON automation_tasks(tenant_id, status)`);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_job_id ON automation_tasks(job_id)`);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_enqueued_at ON automation_tasks(enqueued_at)`);
+}
+
+if (!tableExists("automation_logs")) {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS automation_logs (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL REFERENCES automation_tasks(id) ON DELETE CASCADE,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default' REFERENCES tenants(id) ON DELETE CASCADE,
+      level TEXT NOT NULL DEFAULT 'info' CHECK(level IN ('info','warn','error')),
+      message TEXT NOT NULL,
+      meta TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_logs_task_id ON automation_logs(task_id)`);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_logs_tenant_created_at ON automation_logs(tenant_id, created_at)`);
+}

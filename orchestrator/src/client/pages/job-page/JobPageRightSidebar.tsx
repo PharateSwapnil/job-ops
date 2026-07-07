@@ -1,5 +1,7 @@
-import type { ApplicationTask, Job } from "@shared/types.js";
+import type { ApplicationTask, AutomationPlatform, Job } from "@shared/types.js";
+import { AUTOMATION_PLATFORM_CAPABILITIES, AUTOMATION_PLATFORM_VALUES } from "@shared/types.js";
 import {
+  Bot,
   CalendarClock,
   CheckCircle2,
   Copy,
@@ -7,6 +9,7 @@ import {
   Edit2,
   ExternalLink,
   FileText,
+  Loader2,
   MoreHorizontal,
   PlusCircle,
   RefreshCcw,
@@ -14,10 +17,17 @@ import {
   Upload,
   XCircle,
 } from "lucide-react";
-import type React from "react";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import { TooltipWhenDisabled } from "@/client/components/TooltipWhenDisabled";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +35,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { enqueueAutomationTask, getConfiguredPlatforms } from "@/client/api/automation";
 import { formatTimestamp } from "@/lib/utils";
 
 type JobPageRightSidebarProps = {
@@ -57,6 +75,7 @@ type JobPageRightSidebarProps = {
   onCopyJobInfo: () => void;
   onRescore: () => void;
   onCheckSponsor: () => void;
+  onGenerateTailoredResume: () => void;
 };
 
 export const JobPageRightSidebar: React.FC<JobPageRightSidebarProps> = ({
@@ -89,7 +108,35 @@ export const JobPageRightSidebar: React.FC<JobPageRightSidebarProps> = ({
   onCopyJobInfo,
   onRescore,
   onCheckSponsor,
-}) => (
+  onGenerateTailoredResume,
+}) => {
+  const [autoApplyOpen, setAutoApplyOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<AutomationPlatform>("linkedin");
+  const [configuredPlatforms, setConfiguredPlatforms] = useState<AutomationPlatform[]>([]);
+  const [enqueueing, setEnqueueing] = useState(false);
+
+  const openAutoApply = async () => {
+    const platforms = await getConfiguredPlatforms().catch(() => []);
+    setConfiguredPlatforms(platforms);
+    if (platforms.length > 0) setSelectedPlatform(platforms[0]);
+    setAutoApplyOpen(true);
+  };
+
+  const handleEnqueue = async () => {
+    if (!job) return;
+    setEnqueueing(true);
+    try {
+      await enqueueAutomationTask({ jobId: job.id, platform: selectedPlatform });
+      toast.success(`Added to ${AUTOMATION_PLATFORM_CAPABILITIES[selectedPlatform].label} automation queue`);
+      setAutoApplyOpen(false);
+    } catch {
+      toast.error("Failed to enqueue automation task");
+    } finally {
+      setEnqueueing(false);
+    }
+  };
+
+  return (
   <aside className="space-y-4 xl:sticky xl:top-5">
     <section className="rounded-xl border border-border/50 bg-card/85 p-3">
       <div className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold">
@@ -133,6 +180,32 @@ export const JobPageRightSidebar: React.FC<JobPageRightSidebarProps> = ({
           >
             <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
             Mark Applied
+          </Button>
+        )}
+
+        {isReady && (
+          <Button
+            size="sm"
+            className="w-full justify-start"
+            variant="default"
+            onClick={openAutoApply}
+            disabled={isBusy}
+          >
+            <Bot className="mr-1.5 h-3.5 w-3.5" />
+            Auto Apply
+          </Button>
+        )}
+
+        {isDiscovered && (
+          <Button
+            size="sm"
+            className="w-full justify-start"
+            variant="outline"
+            onClick={onGenerateTailoredResume}
+            disabled={isBusy}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Generate Tailored Resume
           </Button>
         )}
 
@@ -326,5 +399,58 @@ export const JobPageRightSidebar: React.FC<JobPageRightSidebarProps> = ({
         </div>
       </section>
     )}
+
+    {/* Auto Apply dialog */}
+    <Dialog open={autoApplyOpen} onOpenChange={(v) => !v && setAutoApplyOpen(false)}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            Auto Apply
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {configuredPlatforms.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No platforms configured. Go to the Automation page and add your credentials first.
+            </p>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Platform</label>
+                <Select
+                  value={selectedPlatform}
+                  onValueChange={(v) => setSelectedPlatform(v as AutomationPlatform)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {configuredPlatforms.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {AUTOMATION_PLATFORM_CAPABILITIES[p].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleEnqueue}
+                disabled={enqueueing}
+                className="w-full"
+              >
+                {enqueueing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Bot className="h-4 w-4 mr-2" />
+                )}
+                Add to queue
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   </aside>
-);
+  );
+};
