@@ -37,10 +37,14 @@ const REGISTRY: Record<AutomationPlatform, AdapterConstructor> = {
  * Create a fresh adapter instance for the given platform.
  * Call `adapter.injectContext(ctx)` before running any workflow.
  */
-export function createAdapter(platform: AutomationPlatform): BasePlatformAdapter {
+export function createAdapter(
+  platform: AutomationPlatform,
+): BasePlatformAdapter {
   const Ctor = REGISTRY[platform];
   if (!Ctor) {
-    throw new Error(`No automation adapter registered for platform: ${platform}`);
+    throw new Error(
+      `No automation adapter registered for platform: ${platform}`,
+    );
   }
   return new Ctor();
 }

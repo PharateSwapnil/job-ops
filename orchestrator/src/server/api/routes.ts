@@ -3,9 +3,9 @@
  */
 
 import { Router } from "express";
-import { automationRouter } from "./routes/automation/index";
 import { appStatusRouter } from "./routes/app-status";
 import { authRouter } from "./routes/auth";
+import { automationRouter } from "./routes/automation/index";
 import { backupRouter } from "./routes/backup";
 import { databaseRouter } from "./routes/database";
 import { demoRouter } from "./routes/demo";

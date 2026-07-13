@@ -20,10 +20,7 @@ function ensureProfilesDir(): void {
   }
 }
 
-export function resolveProfileDir(
-  tenantId: string,
-  platform: string,
-): string {
+export function resolveProfileDir(tenantId: string, platform: string): string {
   ensureProfilesDir();
   const dir = join(PROFILES_DIR, tenantId, platform);
   if (!existsSync(dir)) {

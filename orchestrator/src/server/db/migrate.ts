@@ -1720,9 +1720,6 @@ sqlite.exec(
   "CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id)",
 );
 
-sqlite.close();
-console.log("🎉 Database migrations complete!");
-
 // ─── Browser Automation Module migrations ────────────────────────────────────
 
 if (!tableExists("automation_sessions")) {
@@ -1739,8 +1736,12 @@ if (!tableExists("automation_sessions")) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_sessions_tenant_platform ON automation_sessions(tenant_id, platform)`);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_sessions_status ON automation_sessions(status)`);
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_sessions_tenant_platform ON automation_sessions(tenant_id, platform)`,
+  );
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_sessions_status ON automation_sessions(status)`,
+  );
 }
 
 if (!tableExists("automation_credentials")) {
@@ -1788,9 +1789,15 @@ if (!tableExists("automation_tasks")) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_tenant_status ON automation_tasks(tenant_id, status)`);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_job_id ON automation_tasks(job_id)`);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_tasks_enqueued_at ON automation_tasks(enqueued_at)`);
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_tasks_tenant_status ON automation_tasks(tenant_id, status)`,
+  );
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_tasks_job_id ON automation_tasks(job_id)`,
+  );
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_tasks_enqueued_at ON automation_tasks(enqueued_at)`,
+  );
 }
 
 if (!tableExists("automation_logs")) {
@@ -1805,6 +1812,13 @@ if (!tableExists("automation_logs")) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_logs_task_id ON automation_logs(task_id)`);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_automation_logs_tenant_created_at ON automation_logs(tenant_id, created_at)`);
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_logs_task_id ON automation_logs(task_id)`,
+  );
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_automation_logs_tenant_created_at ON automation_logs(tenant_id, created_at)`,
+  );
 }
+
+sqlite.close();
+console.log("🎉 Database migrations complete!");

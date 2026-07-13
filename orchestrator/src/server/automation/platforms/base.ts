@@ -101,7 +101,11 @@ export abstract class BasePlatformAdapter implements PlatformAutomator {
     input: JobApplicationInput,
     reporter: StepReporter,
   ): Promise<ApplicationResult> {
-    await reporter.report("navigate", 10, `Navigating to ${this.label} application`);
+    await reporter.report(
+      "navigate",
+      10,
+      `Navigating to ${this.label} application`,
+    );
     await this.navigateToApply(input.jobUrl, reporter);
 
     if (input.resumePath) {
@@ -113,7 +117,11 @@ export abstract class BasePlatformAdapter implements PlatformAutomator {
     await this.fillForm(input, reporter);
 
     if (input.aiAnswers.size > 0) {
-      await reporter.report("answer_questions", 70, "Answering screening questions");
+      await reporter.report(
+        "answer_questions",
+        70,
+        "Answering screening questions",
+      );
       await this.answerQuestions(input.aiAnswers, reporter);
     }
 

@@ -9,7 +9,11 @@ import type { AutomationPlatform, AutomationStep } from "@shared/types";
 
 export interface StepReporter {
   /** Report the current automation step and progress (0–100) */
-  report(step: AutomationStep, progress: number, message?: string): Promise<void>;
+  report(
+    step: AutomationStep,
+    progress: number,
+    message?: string,
+  ): Promise<void>;
   /** Capture and store a screenshot for the current task */
   screenshot(label: string): Promise<string | null>;
   /** Append a structured log entry for the current task */
@@ -67,10 +71,7 @@ export interface PlatformAutomator {
   ): Promise<Partial<JobApplicationInput>>;
 
   /** Navigate to the application form */
-  navigateToApply(
-    jobUrl: string,
-    reporter: StepReporter,
-  ): Promise<void>;
+  navigateToApply(jobUrl: string, reporter: StepReporter): Promise<void>;
 
   /** Upload a resume file to the form */
   uploadResume(resumePath: string, reporter: StepReporter): Promise<void>;

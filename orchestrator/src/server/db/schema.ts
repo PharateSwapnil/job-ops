@@ -1162,15 +1162,9 @@ export const automationSessions = sqliteTable(
       .notNull()
       .default("active"),
     profileDir: text("profile_dir").notNull(),
-    lastUsedAt: text("last_used_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
-    createdAt: text("created_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
+    lastUsedAt: text("last_used_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => ({
     tenantPlatformIndex: index("idx_automation_sessions_tenant_platform").on(
@@ -1196,12 +1190,8 @@ export const automationCredentials = sqliteTable(
     encryptedPassword: text("encrypted_password").notNull(),
     iv: text("iv").notNull(),
     authTag: text("auth_tag").notNull(),
-    createdAt: text("created_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => ({
     tenantPlatformUnique: uniqueIndex(
@@ -1237,17 +1227,11 @@ export const automationTasks = sqliteTable(
     errorMessage: text("error_message"),
     retryCount: integer("retry_count").notNull().default(0),
     maxRetries: integer("max_retries").notNull().default(3),
-    enqueuedAt: text("enqueued_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
+    enqueuedAt: text("enqueued_at").notNull().default(sql`(datetime('now'))`),
     startedAt: text("started_at"),
     completedAt: text("completed_at"),
-    createdAt: text("created_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
-    updatedAt: text("updated_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => ({
     tenantStatusIndex: index("idx_automation_tasks_tenant_status").on(
@@ -1277,9 +1261,7 @@ export const automationLogs = sqliteTable(
       .default("info"),
     message: text("message").notNull(),
     meta: text("meta"),
-    createdAt: text("created_at")
-      .notNull()
-      .default(sql`(datetime('now'))`),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => ({
     taskIndex: index("idx_automation_logs_task_id").on(table.taskId),

@@ -33,8 +33,7 @@ export async function humanType(
 ): Promise<void> {
   await locator.click();
   if (opts.clear) {
-    await locator.selectAll?.();
-    // Fallback: triple-click selects all
+    // Triple-click selects all text in the field
     await locator.click({ clickCount: 3 });
     await randomDelay(50, 100);
   }
@@ -53,8 +52,10 @@ export async function humanClick(
 ): Promise<void> {
   const box = await locator.boundingBox();
   if (box) {
-    const offsetX = Math.floor(Math.random() * (box.width * 0.6)) - box.width * 0.3;
-    const offsetY = Math.floor(Math.random() * (box.height * 0.6)) - box.height * 0.3;
+    const offsetX =
+      Math.floor(Math.random() * (box.width * 0.6)) - box.width * 0.3;
+    const offsetY =
+      Math.floor(Math.random() * (box.height * 0.6)) - box.height * 0.3;
     await locator.click({
       position: {
         x: box.width / 2 + offsetX,

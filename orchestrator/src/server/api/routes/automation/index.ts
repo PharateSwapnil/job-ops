@@ -20,6 +20,8 @@
  *   GET  /automation/platforms                   — platform capabilities
  */
 
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { badRequest, notFound, toAppError } from "@infra/errors";
 import { fail, ok } from "@infra/http";
 import { logger } from "@infra/logger";
@@ -28,9 +30,7 @@ import { setupSse, startSseHeartbeat, writeSseData } from "@infra/sse";
 import { startAutomationWorker } from "@server/automation/queue/engine";
 import { subscribeToTaskProgress } from "@server/automation/queue/events";
 import * as automationRepo from "@server/automation/repositories/automation";
-import {
-  encryptPassword,
-} from "@server/automation/services/credentials";
+import { encryptPassword } from "@server/automation/services/credentials";
 import * as jobsRepo from "@server/repositories/jobs";
 import { DEFAULT_TENANT_ID } from "@server/tenancy/constants";
 import {
@@ -39,8 +39,6 @@ import {
 } from "@shared/types";
 import type { Request, Response } from "express";
 import { Router } from "express";
-import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { z } from "zod";
 
 export const automationRouter = Router();
@@ -250,7 +248,9 @@ automationRouter.delete("/tasks/:id", async (req: Request, res: Response) => {
     if (task.status === "running") {
       return fail(
         res,
-        badRequest("Cannot cancel a running task — wait for it to complete or fail"),
+        badRequest(
+          "Cannot cancel a running task — wait for it to complete or fail",
+        ),
       );
     }
 

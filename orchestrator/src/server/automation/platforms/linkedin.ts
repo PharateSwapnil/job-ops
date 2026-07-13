@@ -6,7 +6,11 @@
  */
 
 import { logger } from "@infra/logger";
-import type { ApplicationResult, JobApplicationInput, StepReporter } from "../browser/types";
+import type {
+  ApplicationResult,
+  JobApplicationInput,
+  StepReporter,
+} from "../browser/types";
 import { BasePlatformAdapter } from "./base";
 
 const LINKEDIN_BASE = "https://www.linkedin.com";
@@ -24,7 +28,9 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     await reporter.report("login", 5, "Checking LinkedIn session");
 
     // Check if already logged in
-    await this.page.goto(`${LINKEDIN_BASE}/feed/`, { waitUntil: "domcontentloaded" });
+    await this.page.goto(`${LINKEDIN_BASE}/feed/`, {
+      waitUntil: "domcontentloaded",
+    });
     await this.randomDelay(1_000, 2_500);
 
     const alreadyLoggedIn = await this.isLoggedIn([
@@ -39,7 +45,9 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     }
 
     await reporter.report("login", 15, "Logging into LinkedIn");
-    await this.page.goto(`${LINKEDIN_BASE}/login`, { waitUntil: "domcontentloaded" });
+    await this.page.goto(`${LINKEDIN_BASE}/login`, {
+      waitUntil: "domcontentloaded",
+    });
     await this.randomDelay(800, 1_500);
 
     await this.fillTextField("#username", username);
@@ -54,14 +62,22 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     // Handle CAPTCHA / verification checkpoint
     if (this.page.url().includes("/checkpoint/")) {
       await reporter.screenshot("linkedin-checkpoint");
-      await reporter.log("warn", "LinkedIn checkpoint detected — manual intervention may be required");
+      await reporter.log(
+        "warn",
+        "LinkedIn checkpoint detected — manual intervention may be required",
+      );
       // Give extra time for the user to handle it
       await this.randomDelay(5_000, 8_000);
     }
 
-    const loggedIn = await this.isLoggedIn([".feed-identity-module", ".global-nav__me-photo"]);
+    const loggedIn = await this.isLoggedIn([
+      ".feed-identity-module",
+      ".global-nav__me-photo",
+    ]);
     if (!loggedIn) {
-      throw new Error("LinkedIn login failed — check credentials or resolve CAPTCHA");
+      throw new Error(
+        "LinkedIn login failed — check credentials or resolve CAPTCHA",
+      );
     }
 
     await reporter.log("info", "LinkedIn login successful");
@@ -86,7 +102,10 @@ export class LinkedInAdapter extends BasePlatformAdapter {
       const anchors = Array.from(
         document.querySelectorAll<HTMLAnchorElement>("a.job-card-list__title"),
       );
-      return anchors.map((a) => a.href).filter(Boolean).slice(0, 20);
+      return anchors
+        .map((a) => a.href)
+        .filter(Boolean)
+        .slice(0, 20);
     });
 
     await reporter.log("info", `Found ${links.length} LinkedIn jobs`);
@@ -134,7 +153,10 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     await this.randomDelay(1_000, 2_000);
   }
 
-  async uploadResume(resumePath: string, reporter: StepReporter): Promise<void> {
+  async uploadResume(
+    resumePath: string,
+    reporter: StepReporter,
+  ): Promise<void> {
     // Look for resume upload input inside the modal
     const uploaded = await this.uploadFile(
       "input[name='file'][type='file'], input[type='file'][accept*='pdf']",
@@ -146,34 +168,39 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     }
   }
 
-  async fillForm(input: JobApplicationInput, reporter: StepReporter): Promise<void> {
+  async fillForm(
+    input: JobApplicationInput,
+    reporter: StepReporter,
+  ): Promise<void> {
     // LinkedIn Easy Apply is a multi-step modal; fill common fields on each page
     const MAX_STEPS = 10;
     for (let step = 0; step < MAX_STEPS; step++) {
       await this.randomDelay(800, 1_500);
 
       // Check for text inputs that look like standard fields
-      const phoneInput = this.page.locator(
-        "input[id*='phoneNumber'], input[aria-label*='phone' i]",
-      ).first();
+      const phoneInput = this.page
+        .locator("input[id*='phoneNumber'], input[aria-label*='phone' i]")
+        .first();
       if (await phoneInput.isVisible().catch(() => false)) {
         const val = await phoneInput.inputValue().catch(() => "");
         if (!val) await this.humanType(phoneInput, "+91 9999999999");
       }
 
       // "Next" button
-      const nextBtn = this.page.locator(
-        "button[aria-label='Continue to next step'], button[aria-label='Review your application']",
-      ).first();
+      const nextBtn = this.page
+        .locator(
+          "button[aria-label='Continue to next step'], button[aria-label='Review your application']",
+        )
+        .first();
       if (await nextBtn.isVisible().catch(() => false)) {
         await this.humanClick(nextBtn);
         continue;
       }
 
       // Submit button — stop filling
-      const submitBtn = this.page.locator(
-        "button[aria-label='Submit application']",
-      ).first();
+      const submitBtn = this.page
+        .locator("button[aria-label='Submit application']")
+        .first();
       if (await submitBtn.isVisible().catch(() => false)) {
         break;
       }
@@ -189,7 +216,7 @@ export class LinkedInAdapter extends BasePlatformAdapter {
     // Collect visible text inputs / textareas in the modal
     const inputs = this.page.locator(
       ".jobs-easy-apply-form-section__grouping input[type='text'], " +
-      ".jobs-easy-apply-form-section__grouping textarea",
+        ".jobs-easy-apply-form-section__grouping textarea",
     );
     const count = await inputs.count().catch(() => 0);
 
@@ -198,7 +225,11 @@ export class LinkedInAdapter extends BasePlatformAdapter {
       const label = await input
         .evaluate((el) => {
           const id = el.id;
-          return id ? document.querySelector(`label[for="${id}"]`)?.textContent?.trim() ?? "" : "";
+          return id
+            ? (document
+                .querySelector(`label[for="${id}"]`)
+                ?.textContent?.trim() ?? "")
+            : "";
         })
         .catch(() => "");
 
@@ -213,9 +244,9 @@ export class LinkedInAdapter extends BasePlatformAdapter {
   async submit(reporter: StepReporter): Promise<void> {
     await this.withRetry(
       async () => {
-        const submitBtn = this.page.locator(
-          "button[aria-label='Submit application']",
-        ).first();
+        const submitBtn = this.page
+          .locator("button[aria-label='Submit application']")
+          .first();
         const visible = await this.waitForVisible(submitBtn, 8_000);
         if (!visible) throw new Error("Submit button not found");
         await this.humanClick(submitBtn);
@@ -227,9 +258,11 @@ export class LinkedInAdapter extends BasePlatformAdapter {
 
   async verify(reporter: StepReporter): Promise<ApplicationResult> {
     await this.randomDelay(1_000, 2_000);
-    const successLocator = this.page.locator(
-      "[data-test-modal='easy-apply-success-modal'], .artdeco-modal .jobs-easy-apply-modal__success",
-    ).first();
+    const successLocator = this.page
+      .locator(
+        "[data-test-modal='easy-apply-success-modal'], .artdeco-modal .jobs-easy-apply-modal__success",
+      )
+      .first();
     const isSuccess = await this.waitForVisible(successLocator, 5_000);
 
     if (isSuccess) {

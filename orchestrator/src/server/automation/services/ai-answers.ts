@@ -5,12 +5,12 @@
  */
 
 import { logger } from "@infra/logger";
-import { getProfile } from "@server/services/profile";
+import type { JsonSchemaDefinition } from "@server/services/llm/types";
 import {
   createConfiguredLlmService,
   resolveLlmModel,
 } from "@server/services/modelSelection";
-import type { JsonSchemaDefinition } from "@server/services/llm/types";
+import { getProfile } from "@server/services/profile";
 
 interface QuestionContext {
   jobTitle: string;
@@ -134,7 +134,9 @@ export async function generateCoverLetter(params: {
 
   const userPrompt =
     `Job: ${params.jobTitle} at ${params.employer}\n` +
-    (params.jobDescription ? `\nJob Description:\n${params.jobDescription}\n` : "") +
+    (params.jobDescription
+      ? `\nJob Description:\n${params.jobDescription}\n`
+      : "") +
     `\nCandidate Profile:\n${profileText}\n\nWrite the cover letter now:`;
 
   const response = await llm.callJson<{ text: string }>({

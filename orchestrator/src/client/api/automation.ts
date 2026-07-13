@@ -10,14 +10,15 @@ import type {
   AutomationQueueResponse,
   AutomationTaskDetail,
 } from "@shared/types";
-import { fetchApi } from "./core";
 import { getCachedAuthHeader } from "./auth-session";
+import { fetchApi } from "./core";
 
 export async function getAutomationQueue(opts?: {
   statuses?: string[];
 }): Promise<AutomationQueueResponse> {
-  const params =
-    opts?.statuses?.length ? `?status=${opts.statuses.join(",")}` : "";
+  const params = opts?.statuses?.length
+    ? `?status=${opts.statuses.join(",")}`
+    : "";
   return fetchApi<AutomationQueueResponse>(`/automation/tasks${params}`);
 }
 

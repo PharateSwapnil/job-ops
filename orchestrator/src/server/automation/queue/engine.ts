@@ -6,15 +6,19 @@
  * and emits SSE progress events.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import { logger } from "@infra/logger";
 import { runWithRequestContext } from "@infra/request-context";
 import { getDataDir } from "@server/config/dataDir";
 import * as jobsRepo from "@server/repositories/jobs";
 import type { AutomationPlatform, AutomationStep } from "@shared/types";
-import { browserEngine, resolveProfileDir, resolveScreenshotsDir } from "../browser/engine";
+import {
+  browserEngine,
+  resolveProfileDir,
+  resolveScreenshotsDir,
+} from "../browser/engine";
 import type { ApplicationResult, StepReporter } from "../browser/types";
 import { createAdapter } from "../platforms/registry";
 import * as automationRepo from "../repositories/automation";
@@ -39,7 +43,11 @@ function buildReporter(
   getPage: () => import("playwright").Page | null,
 ): StepReporter {
   return {
-    async report(step: AutomationStep, progress: number, message?: string): Promise<void> {
+    async report(
+      step: AutomationStep,
+      progress: number,
+      message?: string,
+    ): Promise<void> {
       await automationRepo.updateTaskStep(taskId, step, progress);
       emitAutomationProgress(taskId, {
         type: "step_change",
@@ -50,7 +58,10 @@ function buildReporter(
         message,
         timestamp: new Date().toISOString(),
       });
-      logger.info(`[automation][${platform}] step=${step} progress=${progress}`, { taskId, message });
+      logger.info(
+        `[automation][${platform}] step=${step} progress=${progress}`,
+        { taskId, message },
+      );
     },
 
     async screenshot(label: string): Promise<string | null> {
@@ -60,7 +71,9 @@ function buildReporter(
         const filename = `${taskId}-${label}-${Date.now()}.png`;
         const path = join(screenshotsDir, filename);
         await page.screenshot({ path, fullPage: false });
-        await automationRepo.updateTaskStatus(taskId, "running", { screenshotPath: path });
+        await automationRepo.updateTaskStatus(taskId, "running", {
+          screenshotPath: path,
+        });
         emitAutomationProgress(taskId, {
           type: "screenshot",
           taskId,
@@ -76,8 +89,18 @@ function buildReporter(
       }
     },
 
-    async log(level: "info" | "warn" | "error", message: string, meta?: unknown): Promise<void> {
-      await automationRepo.appendLog({ taskId, tenantId, level, message, meta });
+    async log(
+      level: "info" | "warn" | "error",
+      message: string,
+      meta?: unknown,
+    ): Promise<void> {
+      await automationRepo.appendLog({
+        taskId,
+        tenantId,
+        level,
+        message,
+        meta,
+      });
       logger[level]?.(`[automation][${platform}] ${message}`, { taskId });
     },
   };
@@ -108,7 +131,10 @@ async function processTask(taskId: string): Promise<void> {
   const screenshotsDir = resolveScreenshotsDir(task.tenantId);
   const profileDir = resolveProfileDir(task.tenantId, task.platform);
   let currentPage: import("playwright").Page | null = null;
-  let result: ApplicationResult = { success: false, errorMessage: "Unknown error" };
+  let result: ApplicationResult = {
+    success: false,
+    errorMessage: "Unknown error",
+  };
 
   try {
     // Run within tenant context so jobsRepo scope filters work
@@ -123,29 +149,48 @@ async function processTask(taskId: string): Promise<void> {
         const adapter = createAdapter(task.platform as AutomationPlatform);
         adapter.injectContext(ctx);
 
-        currentPage = ctx.pages()[0] ?? await ctx.newPage();
-        const reporter = buildReporter(taskId, task.tenantId, task.platform, screenshotsDir, () => currentPage);
+        currentPage = ctx.pages()[0] ?? (await ctx.newPage());
+        const reporter = buildReporter(
+          taskId,
+          task.tenantId,
+          task.platform,
+          screenshotsDir,
+          () => currentPage,
+        );
 
         // 1. Credentials + login
-        const creds = await automationRepo.getCredentials(task.tenantId, task.platform as AutomationPlatform);
+        const creds = await automationRepo.getCredentials(
+          task.tenantId,
+          task.platform as AutomationPlatform,
+        );
         if (creds) {
           const password = decryptPassword({
             encryptedPassword: creds.encryptedPassword,
             iv: creds.iv,
             authTag: creds.authTag,
           });
-          await reporter.report("login", 0, `Authenticating on ${task.platform}`);
+          await reporter.report(
+            "login",
+            0,
+            `Authenticating on ${task.platform}`,
+          );
           await adapter.login(creds.username, password, reporter);
         }
 
         // 2. Fetch job description for AI context
-        const jobRecord = await jobsRepo.getJobById(task.jobId).catch(() => null);
+        const jobRecord = await jobsRepo
+          .getJobById(task.jobId)
+          .catch(() => null);
         const jobDescription = jobRecord?.jobDescription ?? null;
 
         // 3. Resolve resume PDF path
         let resumePath: string | null = null;
         if (task.resumeDocumentId) {
-          const candidatePath = join(getDataDir(), "resumes", `${task.resumeDocumentId}.pdf`);
+          const candidatePath = join(
+            getDataDir(),
+            "resumes",
+            `${task.resumeDocumentId}.pdf`,
+          );
           if (existsSync(candidatePath)) resumePath = candidatePath;
         }
         // Fall back to default tenant resume
@@ -194,19 +239,25 @@ async function processTask(taskId: string): Promise<void> {
 
         // 8. Mark job as applied on success
         if (result.success) {
-          await jobsRepo.updateJob(task.jobId, {
-            status: "applied",
-            appliedAt: new Date().toISOString(),
-          }).catch(() => null);
+          await jobsRepo
+            .updateJob(task.jobId, {
+              status: "applied",
+              appliedAt: new Date().toISOString(),
+            })
+            .catch(() => null);
         }
       },
     );
 
-    await automationRepo.updateTaskStatus(taskId, result.success ? "completed" : "failed", {
-      completedAt: new Date().toISOString(),
-      errorMessage: result.errorMessage ?? null,
-      stepProgress: 100,
-    });
+    await automationRepo.updateTaskStatus(
+      taskId,
+      result.success ? "completed" : "failed",
+      {
+        completedAt: new Date().toISOString(),
+        errorMessage: result.errorMessage ?? null,
+        stepProgress: 100,
+      },
+    );
 
     emitAutomationProgress(taskId, {
       type: result.success ? "completed" : "error",
@@ -250,11 +301,15 @@ async function processTask(taskId: string): Promise<void> {
 
 async function poll(tenantId: string): Promise<void> {
   if (isShuttingDown || runningCount >= MAX_CONCURRENT) return;
-  const next = await automationRepo.getNextQueuedTask(tenantId).catch(() => null);
+  const next = await automationRepo
+    .getNextQueuedTask(tenantId)
+    .catch(() => null);
   if (!next) return;
   runningCount++;
   processTask(next.id).catch((err) => {
-    logger.error("[automation] Unhandled processTask rejection", { error: err });
+    logger.error("[automation] Unhandled processTask rejection", {
+      error: err,
+    });
     runningCount = Math.max(0, runningCount - 1);
   });
 }

@@ -7,8 +7,13 @@
  *  - Live task progress with SSE streaming
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  AutomationPlatform,
+  AutomationProgressEvent,
+  AutomationTaskSummary,
+} from "@shared/types";
+import { AUTOMATION_PLATFORM_CAPABILITIES } from "@shared/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot,
   CheckCircle,
@@ -24,41 +29,8 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import type {
-  AutomationPlatform,
-  AutomationProgressEvent,
-  AutomationTaskSummary,
-} from "@shared/types";
-import { AUTOMATION_PLATFORM_CAPABILITIES } from "@shared/types";
-
 import {
   cancelAutomationTask,
   deleteCredentials,
@@ -67,11 +39,42 @@ import {
   streamTaskProgress,
   upsertCredentials,
 } from "@/client/api/automation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  const map: Record<
+    string,
+    {
+      label: string;
+      variant: "default" | "secondary" | "destructive" | "outline";
+    }
+  > = {
     queued: { label: "Queued", variant: "secondary" },
     running: { label: "Running", variant: "default" },
     completed: { label: "Completed", variant: "outline" },
@@ -80,7 +83,10 @@ function StatusBadge({ status }: { status: string }) {
     paused: { label: "Paused", variant: "secondary" },
     idle: { label: "Idle", variant: "outline" },
   };
-  const { label, variant } = map[status] ?? { label: status, variant: "secondary" };
+  const { label, variant } = map[status] ?? {
+    label: status,
+    variant: "secondary",
+  };
   return <Badge variant={variant}>{label}</Badge>;
 }
 
@@ -102,21 +108,19 @@ function TaskCard({
 
   useEffect(() => {
     if (task.status === "running" || task.status === "queued") {
-      const unsub = streamTaskProgress(
-        task.id,
-        (event) => {
-          setEvents((prev) => [...prev.slice(-49), event]);
-          setLiveProgress(event.stepProgress);
-          setLiveStep(event.currentStep);
-          setLiveStatus(event.status);
-        },
-      );
+      const unsub = streamTaskProgress(task.id, (event) => {
+        setEvents((prev) => [...prev.slice(-49), event]);
+        setLiveProgress(event.stepProgress);
+        setLiveStep(event.currentStep);
+        setLiveStatus(event.status);
+      });
       unsubRef.current = unsub;
       return () => unsub();
     }
   }, [task.id, task.status]);
 
-  const caps = AUTOMATION_PLATFORM_CAPABILITIES[task.platform as AutomationPlatform];
+  const caps =
+    AUTOMATION_PLATFORM_CAPABILITIES[task.platform as AutomationPlatform];
 
   return (
     <Card className="relative overflow-hidden">
@@ -125,17 +129,21 @@ function TaskCard({
           liveStatus === "running"
             ? "bg-blue-500 animate-pulse"
             : liveStatus === "completed"
-            ? "bg-green-500"
-            : liveStatus === "failed"
-            ? "bg-red-500"
-            : "bg-muted"
+              ? "bg-green-500"
+              : liveStatus === "failed"
+                ? "bg-red-500"
+                : "bg-muted"
         }`}
       />
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base truncate">{task.jobTitle}</CardTitle>
-            <CardDescription className="truncate">{task.employer}</CardDescription>
+            <CardTitle className="text-base truncate">
+              {task.jobTitle}
+            </CardTitle>
+            <CardDescription className="truncate">
+              {task.employer}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Badge variant="outline" className="text-xs">
@@ -158,7 +166,9 @@ function TaskCard({
         )}
 
         {task.errorMessage && (
-          <p className="text-xs text-destructive line-clamp-2">{task.errorMessage}</p>
+          <p className="text-xs text-destructive line-clamp-2">
+            {task.errorMessage}
+          </p>
         )}
 
         {task.retryCount > 0 && (
@@ -206,8 +216,11 @@ function TaskCard({
 
         {expanded && events.length > 0 && (
           <div className="rounded-md bg-muted/50 p-2 max-h-32 overflow-y-auto space-y-0.5">
-            {events.map((e, i) => (
-              <p key={i} className="text-xs font-mono text-muted-foreground">
+            {events.map((e) => (
+              <p
+                key={`${e.timestamp}-${e.type}`}
+                className="text-xs font-mono text-muted-foreground"
+              >
                 {e.message ?? e.type}
               </p>
             ))}
@@ -241,7 +254,9 @@ function CredentialDialog({
     setSaving(true);
     try {
       await upsertCredentials(platform, username, password);
-      toast.success(`${AUTOMATION_PLATFORM_CAPABILITIES[platform].label} credentials saved`);
+      toast.success(
+        `${AUTOMATION_PLATFORM_CAPABILITIES[platform].label} credentials saved`,
+      );
       setUsername("");
       setPassword("");
       onSaved();
@@ -256,7 +271,9 @@ function CredentialDialog({
   const handleDelete = async (p: AutomationPlatform) => {
     try {
       await deleteCredentials(p);
-      toast.success(`${AUTOMATION_PLATFORM_CAPABILITIES[p].label} credentials removed`);
+      toast.success(
+        `${AUTOMATION_PLATFORM_CAPABILITIES[p].label} credentials removed`,
+      );
       onSaved();
     } catch {
       toast.error("Failed to remove credentials");
@@ -278,8 +295,13 @@ function CredentialDialog({
             <div className="space-y-2">
               <p className="text-sm font-medium">Configured platforms</p>
               {configured.map((p) => (
-                <div key={p} className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <span className="text-sm">{AUTOMATION_PLATFORM_CAPABILITIES[p].label}</span>
+                <div
+                  key={p}
+                  className="flex items-center justify-between rounded-md border px-3 py-2"
+                >
+                  <span className="text-sm">
+                    {AUTOMATION_PLATFORM_CAPABILITIES[p].label}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -392,7 +414,8 @@ export function AutomationPage() {
             Browser Automation
           </h1>
           <p className="text-sm text-muted-foreground">
-            Automatically apply to jobs across LinkedIn, Naukri, Indeed, and 7 more platforms.
+            Automatically apply to jobs across LinkedIn, Naukri, Indeed, and 7
+            more platforms.
           </p>
         </div>
         <Button
@@ -450,7 +473,9 @@ export function AutomationPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => qc.invalidateQueries({ queryKey: ["automation-queue"] })}
+              onClick={() =>
+                qc.invalidateQueries({ queryKey: ["automation-queue"] })
+              }
             >
               <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
               Refresh

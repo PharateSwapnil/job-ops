@@ -5,16 +5,22 @@
  * The encryption key is derived from AUTOMATION_SECRET env var.
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LEN = 32;
 const IV_LEN = 16;
-const TAG_LEN = 16;
 const SALT = "job-ops-automation-v1";
 
 function deriveKey(): Buffer {
-  const secret = process.env.AUTOMATION_SECRET ?? "job-ops-default-automation-secret-change-me";
+  const secret =
+    process.env.AUTOMATION_SECRET ??
+    "job-ops-default-automation-secret-change-me";
   return scryptSync(secret, SALT, KEY_LEN);
 }
 
@@ -49,8 +55,7 @@ export function decryptPassword(params: {
   const encrypted = Buffer.from(params.encryptedPassword, "hex");
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
-  return Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]).toString("utf8");
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString(
+    "utf8",
+  );
 }

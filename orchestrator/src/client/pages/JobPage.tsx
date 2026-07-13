@@ -917,7 +917,9 @@ export const JobPage: React.FC = () => {
               onCopyJobInfo={() => void handleCopyJobInfo()}
               onRescore={() => void handleRescore()}
               onCheckSponsor={() => void handleCheckSponsor()}
-              onGenerateTailoredResume={() => navigate(`/jobs/discovered/${job.id}`)}
+              onGenerateTailoredResume={() =>
+                navigate(`/jobs/discovered/${job.id}`)
+              }
             />
           )}
         </div>
